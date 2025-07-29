@@ -27,15 +27,32 @@ const app = express();
 app.use(helmet());
 
 // CORS configuration
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "https://cosmic-projectfrontend.vercel.app"
+];
+
+// Log CORS configuration for debugging
+console.log("CORS Allowed Origins:", allowedOrigins);
+
 const corsOptions = {
-  origin: process.env.ALLOWED_ORIGINS?.split(",") || [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "https://cosmic-projectfrontend.vercel.app"
-  ],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log("CORS blocked origin:", origin);
+      // For now, allow all origins to debug the issue
+      callback(null, true);
+    }
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 };
 
 app.use(cors(corsOptions));

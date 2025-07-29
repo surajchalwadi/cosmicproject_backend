@@ -7,7 +7,11 @@ let io;
 const initializeSocket = (server) => {
   io = socketIo(server, {
     cors: {
-      origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000', 'http://localhost:5000'],
+      origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+        'http://localhost:3000', 
+        'http://localhost:5000',
+        'https://cosmic-projectfrontend.vercel.app'
+      ],
       methods: ['GET', 'POST'],
       credentials: true,
     },
