@@ -84,6 +84,16 @@ app.use("/api/files", filesRoutes);
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Root route to handle GET /
+app.get("/", (req, res) => {
+  res.status(200).json({
+    message: "Backend is running successfully 🚀",
+    status: "ok",
+    environment: process.env.NODE_ENV || "development",
+  });
+});
+// Handle favicon requests to avoid errors in logs
+app.get("/favicon.ico", (req, res) => res.status(204));
 
 // Handle 404 errors
 app.use(notFound);
