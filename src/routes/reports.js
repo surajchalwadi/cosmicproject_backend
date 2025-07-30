@@ -287,10 +287,22 @@ router.post('/',
 
       // Emit real-time event to manager and superadmin
       try {
-        const { getIO } = require('../config/socket');
-        const io = getIO();
-        io.to(`user_${managerId}`).emit('report_submitted', { report: newReport });
-        io.to('superadmin').emit('report_submitted', { report: newReport });
+        if (global.socketServer) {
+          global.socketServer.sendNotificationToUser(managerId, {
+            title: 'Report Submitted',
+            message: `A new report has been submitted for task completion`,
+            type: 'success',
+            priority: 'medium',
+            category: 'task'
+          });
+          global.socketServer.sendNotificationToRole('super-admin', {
+            title: 'Report Submitted',
+            message: `A new report has been submitted for task completion`,
+            type: 'success',
+            priority: 'medium',
+            category: 'task'
+          });
+        }
       } catch (e) {
         console.error('Socket.IO emit error:', e.message);
       }

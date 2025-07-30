@@ -246,24 +246,28 @@ router.put("/tasks/:taskId/status", async (req, res) => {
 
     // Emit real-time event to manager and superadmin
     try {
-      const { getIO } = require("../config/socket");
-      const io = getIO();
-      // Notify the assigned manager if available
-      if (task && task.assignedBy) {
-        console.log('Emitting task_status_updated to manager:', task.assignedBy, fullyPopulatedTask.status);
-        io.to(`user_${task.assignedBy}`).emit("task_status_updated", {
-          task: fullyPopulatedTask,
-          project: parentProject,
-          delayReason: updateData.delayReason || undefined
+      if (global.socketServer) {
+        // Notify the assigned manager if available
+        if (task && task.assignedBy) {
+          console.log('Sending notification to manager:', task.assignedBy, fullyPopulatedTask.status);
+          global.socketServer.sendNotificationToUser(task.assignedBy, {
+            title: 'Task Status Updated',
+            message: `Task "${fullyPopulatedTask.title}" status changed to ${fullyPopulatedTask.status}`,
+            type: 'info',
+            priority: 'medium',
+            category: 'task'
+          });
+        }
+        // Notify all superadmins
+        console.log('Sending notification to superadmin:', fullyPopulatedTask.status);
+        global.socketServer.sendNotificationToRole('super-admin', {
+          title: 'Task Status Updated',
+          message: `Task "${fullyPopulatedTask.title}" status changed to ${fullyPopulatedTask.status}`,
+          type: 'info',
+          priority: 'medium',
+          category: 'task'
         });
       }
-      // Notify all superadmins
-      console.log('Emitting task_status_updated to superadmin:', fullyPopulatedTask.status);
-      io.to("superadmin").emit("task_status_updated", {
-        task: fullyPopulatedTask,
-        project: parentProject,
-        delayReason: updateData.delayReason || undefined
-      });
     } catch (e) {
       console.error("Socket.IO emit error (task_status_updated):", e.message);
     }

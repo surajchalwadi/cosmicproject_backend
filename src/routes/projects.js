@@ -344,11 +344,15 @@ router.post('/', [
 
     // Emit real-time event to superadmin room
     try {
-      const { getIO } = require('../config/socket');
-      const io = getIO();
-      io.to('superadmin').emit('project_created', {
-        project: newProject
-      });
+      if (global.socketServer) {
+        global.socketServer.sendNotificationToRole('super-admin', {
+          title: 'New Project Created',
+          message: `A new project has been created: ${newProject.siteName}`,
+          type: 'info',
+          priority: 'medium',
+          category: 'task'
+        });
+      }
     } catch (e) {
       console.error('Socket.IO emit error:', e.message);
     }

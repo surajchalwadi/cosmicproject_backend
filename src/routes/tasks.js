@@ -64,11 +64,15 @@ router.post('/',
 
       // Emit real-time event to technician
       try {
-        const { getIO } = require('../config/socket');
-        const io = getIO();
-        io.to(`user_${technician._id}`).emit('task_assigned', {
-          task: newTask
-        });
+        if (global.socketServer) {
+          global.socketServer.sendNotificationToUser(technician._id, {
+            title: 'New Task Assigned',
+            message: `You have been assigned a new task: ${newTask.title}`,
+            type: 'info',
+            priority: 'medium',
+            category: 'task'
+          });
+        }
       } catch (e) {
         console.error('Socket.IO emit error:', e.message);
       }

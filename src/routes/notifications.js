@@ -9,6 +9,7 @@ const {
 } = require('../controllers/notificationController');
 const { protect, authorize } = require('../middleware/auth');
 const { validateCreateNotification } = require('../middleware/validation');
+const Notification = require('../models/Notification');
 
 const router = express.Router();
 
@@ -32,5 +33,7 @@ router.put('/:id/read', markAsRead);
 
 // Delete notification
 router.delete('/:id', deleteNotification);
+
+
 
 module.exports = router;

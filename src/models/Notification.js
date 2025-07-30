@@ -59,8 +59,11 @@ notificationSchema.index({ userId: 1, createdAt: -1 });
 notificationSchema.index({ type: 1 });
 notificationSchema.index({ priority: 1 });
 
-// TTL index for expiring notifications
-notificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+// TTL index for expiring notifications (only if expiresAt is set)
+notificationSchema.index({ expiresAt: 1 }, { 
+  expireAfterSeconds: 0,
+  partialFilterExpression: { expiresAt: { $exists: true, $ne: null } }
+});
 
 // Method to mark notification as read
 notificationSchema.methods.markAsRead = function() {
