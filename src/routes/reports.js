@@ -297,6 +297,12 @@ router.post('/',
           category: 'task'
         });
         console.log(`Report submission notifications sent successfully`);
+        
+        // Also emit socket event for frontend compatibility
+        if (global.socketServer) {
+          global.socketServer.emitReportSubmitted(newReport, req.user);
+          console.log(`Report submission socket event emitted`);
+        }
       } catch (notificationError) {
         console.error('Failed to send report submission notifications:', notificationError);
         // Don't fail the request if notification fails

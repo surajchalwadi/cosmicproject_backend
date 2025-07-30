@@ -269,6 +269,12 @@ router.put("/tasks/:taskId/status", async (req, res) => {
         priority: 'medium',
         category: 'task'
       });
+      
+      // Also emit socket event for frontend compatibility
+      if (global.socketServer) {
+        global.socketServer.emitTaskStatusChanged(fullyPopulatedTask, fullyPopulatedTask.status, req.user);
+        console.log(`Task status change socket event emitted`);
+      }
     } catch (notificationError) {
       console.error("Failed to send task status notifications:", notificationError);
       // Don't fail the request if notification fails

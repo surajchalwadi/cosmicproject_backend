@@ -67,6 +67,12 @@ router.post('/',
       try {
         await notificationService.sendTaskAssignedNotification(technician._id, newTask, req.user);
         console.log(`Task assignment notification sent to technician ${technician.name}`);
+        
+        // Also emit socket event for frontend compatibility
+        if (global.socketServer) {
+          global.socketServer.emitTaskAssigned(newTask, technician, req.user);
+          console.log(`Task assignment socket event emitted`);
+        }
       } catch (notificationError) {
         console.error('Failed to send task assignment notification:', notificationError);
         // Don't fail the request if notification fails
