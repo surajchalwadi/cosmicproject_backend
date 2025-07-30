@@ -4,6 +4,7 @@ const { protect, authorize } = require('../middleware/auth');
 const Task = require('../models/Task');
 const Project = require('../models/Project');
 const User = require('../models/User');
+const notificationService = require('../services/notificationService');
 
 const router = express.Router();
 
@@ -21,7 +22,7 @@ router.post('/',
   async (req, res) => {
     try {
       const errors = validationResult(req);
-      if (!errors.isEmpty()) {
+      if (errors.isEmpty()) {
         return res.status(400).json({
           status: 'error',
           message: 'Validation failed',
@@ -62,19 +63,13 @@ router.post('/',
       foundProject.tasks.push(newTask._id);
       await foundProject.save();
 
-      // Emit real-time event to technician
+      // Send notification to technician using the notification service
       try {
-        if (global.socketServer) {
-          global.socketServer.sendNotificationToUser(technician._id, {
-            title: 'New Task Assigned',
-            message: `You have been assigned a new task: ${newTask.title}`,
-            type: 'info',
-            priority: 'medium',
-            category: 'task'
-          });
-        }
-      } catch (e) {
-        console.error('Socket.IO emit error:', e.message);
+        await notificationService.sendTaskAssignedNotification(technician._id, newTask, req.user);
+        console.log(`Task assignment notification sent to technician ${technician.name}`);
+      } catch (notificationError) {
+        console.error('Failed to send task assignment notification:', notificationError);
+        // Don't fail the request if notification fails
       }
 
       res.status(201).json({

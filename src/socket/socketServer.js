@@ -10,7 +10,8 @@ class SocketServer {
         origin: process.env.FRONTEND_URL || "http://localhost:5173",
         methods: ["GET", "POST"],
         credentials: true
-      }
+      },
+      transports: ['websocket', 'polling']
     });
 
     this.connectedUsers = new Map(); // userId -> socketId
@@ -22,8 +23,14 @@ class SocketServer {
     // Authentication middleware
     this.io.use(async (socket, next) => {
       try {
-        const token = socket.handshake.auth.token;
+        // Try to get token from different possible locations
+        let token = socket.handshake.auth.token || 
+                   socket.handshake.headers.authorization?.replace('Bearer ', '') ||
+                   socket.handshake.query.token ||
+                   socket.handshake.auth.authorization?.replace('Bearer ', '');
+
         if (!token) {
+          console.log('Socket authentication failed: No token provided');
           return next(new Error('Authentication error: No token provided'));
         }
 
@@ -31,11 +38,13 @@ class SocketServer {
         const user = await User.findById(decoded.id).select('-password');
         
         if (!user) {
+          console.log('Socket authentication failed: User not found');
           return next(new Error('Authentication error: User not found'));
         }
 
         socket.userId = user._id.toString();
         socket.user = user;
+        console.log(`Socket authenticated for user: ${user.name} (${user._id})`);
         next();
       } catch (error) {
         console.error('Socket authentication error:', error.message);
@@ -67,6 +76,11 @@ class SocketServer {
         }
       });
 
+      // Handle notification acknowledgment
+      socket.on('notification:acknowledged', (data) => {
+        console.log(`Notification acknowledged by ${socket.user.name}:`, data);
+      });
+
       // Handle disconnection
       socket.on('disconnect', () => {
         console.log(`User disconnected: ${socket.user.name} (${socket.userId})`);
@@ -94,6 +108,8 @@ class SocketServer {
   // Send notification to specific user
   async sendNotificationToUser(userId, notification) {
     try {
+      console.log(`Sending notification to user ${userId}:`, notification);
+      
       // Save notification to database
       const savedNotification = await Notification.create({
         userId,
@@ -105,10 +121,18 @@ class SocketServer {
         metadata: notification.metadata || {}
       });
 
+      console.log(`Notification saved to database:`, savedNotification._id);
+
       // Send to connected user
       const socketId = this.connectedUsers.get(userId);
       if (socketId) {
-        this.io.to(socketId).emit('notification:new', savedNotification);
+        console.log(`User ${userId} is connected, sending real-time notification`);
+        this.io.to(socketId).emit('notification:new', {
+          ...savedNotification.toObject(),
+          timestamp: new Date()
+        });
+      } else {
+        console.log(`User ${userId} is not connected, notification saved to database only`);
       }
 
       return savedNotification;
@@ -127,15 +151,22 @@ class SocketServer {
   // Send notification to all users with specific role
   async sendNotificationToRole(role, notification) {
     try {
+      console.log(`Sending notification to role ${role}:`, notification);
+      
       // Get all users with the specified role
       const users = await User.find({ role }).select('_id');
       const userIds = users.map(user => user._id.toString());
+
+      console.log(`Found ${userIds.length} users with role ${role}`);
 
       // Send to all users with this role
       await this.sendNotificationToUsers(userIds, notification);
 
       // Also emit to role room for real-time updates
-      this.io.to(`role:${role}`).emit('notification:new', notification);
+      this.io.to(`role:${role}`).emit('notification:new', {
+        ...notification,
+        timestamp: new Date()
+      });
     } catch (error) {
       console.error('Error sending notification to role:', error);
       throw error;
@@ -145,6 +176,8 @@ class SocketServer {
   // Send notification to all connected users
   async sendNotificationToAll(notification) {
     try {
+      console.log(`Sending notification to all users:`, notification);
+      
       // Get all users
       const users = await User.find().select('_id');
       const userIds = users.map(user => user._id.toString());
@@ -153,7 +186,10 @@ class SocketServer {
       await this.sendNotificationToUsers(userIds, notification);
 
       // Also emit to all connected clients
-      this.io.emit('notification:new', notification);
+      this.io.emit('notification:new', {
+        ...notification,
+        timestamp: new Date()
+      });
     } catch (error) {
       console.error('Error sending notification to all:', error);
       throw error;

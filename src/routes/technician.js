@@ -244,23 +244,14 @@ router.put("/tasks/:taskId/status", async (req, res) => {
       }
     }
 
-    // Emit real-time event to manager and superadmin
+    // Send notification to manager and superadmin using the notification service
     try {
-      if (global.socketServer) {
-        // Notify the assigned manager if available
-        if (task && task.assignedBy) {
-          console.log('Sending notification to manager:', task.assignedBy, fullyPopulatedTask.status);
-          global.socketServer.sendNotificationToUser(task.assignedBy, {
-            title: 'Task Status Updated',
-            message: `Task "${fullyPopulatedTask.title}" status changed to ${fullyPopulatedTask.status}`,
-            type: 'info',
-            priority: 'medium',
-            category: 'task'
-          });
-        }
-        // Notify all superadmins
-        console.log('Sending notification to superadmin:', fullyPopulatedTask.status);
-        global.socketServer.sendNotificationToRole('super-admin', {
+      const notificationService = require('../services/notificationService');
+      
+      // Notify the assigned manager if available
+      if (task && task.assignedBy) {
+        console.log('Sending notification to manager:', task.assignedBy, fullyPopulatedTask.status);
+        await notificationService.sendRealTimeNotification(task.assignedBy, {
           title: 'Task Status Updated',
           message: `Task "${fullyPopulatedTask.title}" status changed to ${fullyPopulatedTask.status}`,
           type: 'info',
@@ -268,8 +259,19 @@ router.put("/tasks/:taskId/status", async (req, res) => {
           category: 'task'
         });
       }
-    } catch (e) {
-      console.error("Socket.IO emit error (task_status_updated):", e.message);
+      
+      // Notify all superadmins
+      console.log('Sending notification to superadmin:', fullyPopulatedTask.status);
+      await notificationService.sendNotificationToRole('super-admin', {
+        title: 'Task Status Updated',
+        message: `Task "${fullyPopulatedTask.title}" status changed to ${fullyPopulatedTask.status}`,
+        type: 'info',
+        priority: 'medium',
+        category: 'task'
+      });
+    } catch (notificationError) {
+      console.error("Failed to send task status notifications:", notificationError);
+      // Don't fail the request if notification fails
     }
 
     res.json({

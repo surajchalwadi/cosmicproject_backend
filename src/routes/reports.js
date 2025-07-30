@@ -285,26 +285,21 @@ router.post('/',
         content
       });
 
-      // Emit real-time event to manager and superadmin
+      // Send notification to manager and superadmin using the notification service
       try {
-        if (global.socketServer) {
-          global.socketServer.sendNotificationToUser(managerId, {
-            title: 'Report Submitted',
-            message: `A new report has been submitted for task completion`,
-            type: 'success',
-            priority: 'medium',
-            category: 'task'
-          });
-          global.socketServer.sendNotificationToRole('super-admin', {
-            title: 'Report Submitted',
-            message: `A new report has been submitted for task completion`,
-            type: 'success',
-            priority: 'medium',
-            category: 'task'
-          });
-        }
-      } catch (e) {
-        console.error('Socket.IO emit error:', e.message);
+        const notificationService = require('../services/notificationService');
+        await notificationService.sendReportSubmittedNotification(managerId, newReport, req.user);
+        await notificationService.sendNotificationToRole('super-admin', {
+          title: 'Report Submitted',
+          message: `A new report has been submitted for task completion`,
+          type: 'success',
+          priority: 'medium',
+          category: 'task'
+        });
+        console.log(`Report submission notifications sent successfully`);
+      } catch (notificationError) {
+        console.error('Failed to send report submission notifications:', notificationError);
+        // Don't fail the request if notification fails
       }
 
       res.status(201).json({
