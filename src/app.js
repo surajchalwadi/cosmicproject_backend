@@ -30,7 +30,8 @@ app.use(helmet());
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5173",
-  "https://cosmic-projectfrontend.vercel.app"
+  "https://cosmic-projectfrontend.vercel.app",
+  "https://cosmicprojectfrontend.vercel.app"
 ];
 
 // Log CORS configuration for debugging
