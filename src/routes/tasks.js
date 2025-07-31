@@ -22,7 +22,7 @@ router.post('/',
   async (req, res) => {
     try {
       const errors = validationResult(req);
-      if (errors.isEmpty()) {
+      if (!errors.isEmpty()) {
         return res.status(400).json({
           status: 'error',
           message: 'Validation failed',
