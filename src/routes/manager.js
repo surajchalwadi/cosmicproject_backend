@@ -221,6 +221,22 @@ router.post("/tasks", upload.array("files", 10), async (req, res) => {
       .populate("assignedTo", "name email")
       .populate("assignedBy", "name email");
 
+    // Send notification to technician using the notification service
+    try {
+      const notificationService = require('../services/notificationService');
+      await notificationService.sendTaskAssignedNotification(technicianId, populatedTask, req.user);
+      console.log(`Task assignment notification sent to technician ${technician.name}`);
+      
+      // Also emit socket event for frontend compatibility
+      if (global.socketServer) {
+        global.socketServer.emitTaskAssigned(populatedTask, populatedTask.assignedTo, req.user);
+        console.log(`Task assignment socket event emitted`);
+      }
+    } catch (notificationError) {
+      console.error('Failed to send task assignment notification:', notificationError);
+      // Don't fail the request if notification fails
+    }
+
     res.status(201).json({
       status: "success",
       message: "Task created and assigned successfully",
