@@ -7,12 +7,7 @@ class SocketServer {
   constructor(server) {
     this.io = new Server(server, {
       cors: {
-        origin: [
-          "http://localhost:3000",
-          "http://localhost:5173", 
-          "https://cosmic-projectfrontend.vercel.app",
-          "https://cosmicprojectfrontend.vercel.app"
-        ],
+        origin: true, // Allow all origins
         methods: ["GET", "POST"],
         credentials: true
       },

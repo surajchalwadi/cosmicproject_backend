@@ -26,40 +26,16 @@ const app = express();
 // Security middleware
 app.use(helmet());
 
-// CORS configuration - Force allow the frontend URL regardless of environment variables
-const allowedOrigins = [
-  "http://localhost:3000",
-  "http://localhost:5173",
-  "https://cosmic-projectfrontend.vercel.app",
-  "https://cosmicprojectfrontend.vercel.app"
-];
-
-// Log CORS configuration for debugging
-console.log("CORS Allowed Origins:", allowedOrigins);
-console.log("Environment ALLOWED_ORIGINS:", process.env.ALLOWED_ORIGINS);
-
+// CORS configuration - Allow all origins for now to ensure frontend works
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    console.log("Request origin:", origin);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log("Origin allowed:", origin);
-      callback(null, true);
-    } else {
-      console.log("CORS blocked origin:", origin);
-      // For now, allow all origins to debug the issue
-      callback(null, true);
-    }
-  },
+  origin: true, // Allow all origins
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 };
 
+console.log("CORS: Allowing all origins for production");
 app.use(cors(corsOptions));
 
 // Rate limiting
