@@ -102,6 +102,35 @@ class SocketServer {
           userName: socket.user.name
         });
       });
+
+      // Handle frontend test events
+      socket.on('test:frontend', (data) => {
+        console.log('✅ Backend received test from frontend:', data);
+        socket.emit('test:backend', {
+          message: '✅ Backend responded to test',
+          timestamp: new Date().toISOString(),
+          user: {
+            id: socket.user._id,
+            name: socket.user.name,
+            role: socket.user.role
+          }
+        });
+      });
+
+      // Handle notification test events
+      socket.on('notification:test', (data) => {
+        console.log('✅ Backend received notification test from frontend:', data);
+        socket.emit('notification:new', {
+          id: 'test-' + Date.now(),
+          title: 'Test Notification',
+          message: 'This is a test notification from backend',
+          type: 'info',
+          priority: 'normal',
+          category: 'test',
+          timestamp: new Date().toISOString(),
+          isRead: false
+        });
+      });
     });
   }
 
