@@ -359,18 +359,6 @@ router.get("/picture/*", (req, res) => {
       fileSize: stats.size
     });
     
-    // Set CORS headers to allow cross-origin requests
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.header('Access-Control-Max-Age', '86400'); // 24 hours
-    
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-      console.log('🛡️ Handling preflight request');
-      return res.status(200).end();
-    }
-    
     // Set content type and length headers
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Length', stats.size);
