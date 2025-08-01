@@ -176,15 +176,17 @@ router.get("/test", (req, res) => {
   });
 });
 
-// Serve profile picture
-router.get("/picture/:filename", (req, res) => {
+// Serve profile picture - handle full path or just filename
+router.get("/picture/*", (req, res) => {
   try {
-    let { filename } = req.params;
+    // Get the full path from the wildcard parameter
+    const fullPath = req.params[0]; // This captures everything after /picture/
     
     console.log('🔍 Profile picture request:', {
-      originalFilename: req.params.filename,
-      filename: filename
+      fullPath: fullPath
     });
+    
+    let filename = fullPath;
     
     // Clean the filename - remove uploads/ prefix if present
     if (filename.startsWith('uploads/')) {
@@ -230,7 +232,7 @@ router.get("/picture/:filename", (req, res) => {
         status: 'error',
         message: 'Profile picture not found',
         searchedPaths: possiblePaths.map(p => p.replace(__dirname, '...')),
-        requestedFilename: req.params.filename,
+        requestedPath: fullPath,
         cleanedFilename: filename
       });
     }
