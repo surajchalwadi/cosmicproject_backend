@@ -170,7 +170,15 @@ router.put("/", protect, async (req, res) => {
 // Serve profile picture
 router.get("/picture/:filename", (req, res) => {
   try {
-    const { filename } = req.params;
+    let { filename } = req.params;
+    
+    // Clean the filename - remove uploads/ prefix if present
+    if (filename.startsWith('uploads/')) {
+      filename = filename.replace('uploads/', '');
+    }
+    if (filename.startsWith('profiles/')) {
+      filename = filename.replace('profiles/', '');
+    }
     
     // Validate filename to prevent directory traversal
     if (!filename || filename.includes('..') || filename.includes('/')) {
@@ -200,7 +208,9 @@ router.get("/picture/:filename", (req, res) => {
       return res.status(404).json({
         status: 'error',
         message: 'Profile picture not found',
-        searchedPaths: possiblePaths.map(p => p.replace(__dirname, '...'))
+        searchedPaths: possiblePaths.map(p => p.replace(__dirname, '...')),
+        requestedFilename: req.params.filename,
+        cleanedFilename: filename
       });
     }
 
