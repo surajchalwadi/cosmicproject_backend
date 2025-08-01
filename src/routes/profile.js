@@ -167,6 +167,49 @@ router.put("/", protect, async (req, res) => {
   }
 });
 
+// Test endpoint to create a test profile picture
+router.get("/test-image", (req, res) => {
+  try {
+    // Create a simple test image (1x1 pixel PNG)
+    const testImageBuffer = Buffer.from([
+      0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+      0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+      0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xDE, 0x00, 0x00, 0x00,
+      0x0C, 0x49, 0x44, 0x41, 0x54, 0x08, 0x99, 0x01, 0x01, 0x00, 0x00, 0x00,
+      0xFF, 0xFF, 0x00, 0x00, 0x00, 0x02, 0x00, 0x01, 0xE2, 0x21, 0xBC, 0x33,
+      0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
+    ]);
+    
+    // Ensure uploads/profiles directory exists
+    const uploadsDir = path.join(__dirname, '../../uploads/profiles');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    
+    // Create test file
+    const testFileName = 'test-profile.png';
+    const testFilePath = path.join(uploadsDir, testFileName);
+    fs.writeFileSync(testFilePath, testImageBuffer);
+    
+    console.log('✅ Test image created at:', testFilePath.replace(__dirname, '...'));
+    
+    res.json({
+      status: 'success',
+      message: 'Test image created successfully',
+      testUrl: `/api/profile/picture/${testFileName}`,
+      fullUrl: `https://cosmicproject-backend-1.onrender.com/api/profile/picture/${testFileName}`
+    });
+    
+  } catch (error) {
+    console.error('❌ Test image creation error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to create test image',
+      error: error.message
+    });
+  }
+});
+
 // Test endpoint to verify route is working
 router.get("/test", (req, res) => {
   res.json({
