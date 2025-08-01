@@ -74,20 +74,36 @@ router.post("/picture", protect, upload.single("profilePicture"), async (req, re
       });
     }
 
+    console.log('📤 Profile picture upload:', {
+      filename: req.file.filename,
+      originalname: req.file.originalname,
+      path: req.file.path,
+      size: req.file.size,
+      mimetype: req.file.mimetype
+    });
+
     // Delete old profile picture if exists
     const user = await User.findById(req.user._id);
     if (user.profilePicture) {
       const oldPicturePath = path.join(__dirname, "../../", user.profilePicture);
+      console.log('🗑️ Deleting old profile picture:', oldPicturePath.replace(__dirname, '...'));
       if (fs.existsSync(oldPicturePath)) {
         fs.unlinkSync(oldPicturePath);
+        console.log('✅ Old profile picture deleted');
+      } else {
+        console.log('⚠️ Old profile picture not found at:', oldPicturePath.replace(__dirname, '...'));
       }
     }
 
     // Update user with new profile picture path
     const profilePicturePath = `uploads/profiles/${req.file.filename}`;
+    console.log('💾 Saving profile picture path to database:', profilePicturePath);
+    
     await User.findByIdAndUpdate(req.user._id, {
       profilePicture: profilePicturePath
     });
+
+    console.log('✅ Profile picture uploaded successfully');
 
     res.json({
       status: "success",
@@ -97,7 +113,7 @@ router.post("/picture", protect, upload.single("profilePicture"), async (req, re
       }
     });
   } catch (error) {
-    console.error("Profile picture upload error:", error);
+    console.error("❌ Profile picture upload error:", error);
     res.status(500).json({
       status: "error",
       message: "Failed to upload profile picture",
@@ -163,6 +179,50 @@ router.put("/", protect, async (req, res) => {
       status: "error",
       message: "Failed to update profile",
       error: process.env.NODE_ENV === "development" ? error.message : "Internal server error"
+    });
+  }
+});
+
+// List files in uploads directory (for debugging)
+router.get("/list-files", (req, res) => {
+  try {
+    const uploadsDir = path.join(__dirname, '../../uploads');
+    const profilesDir = path.join(__dirname, '../../uploads/profiles');
+    
+    let uploadsFiles = [];
+    let profilesFiles = [];
+    
+    if (fs.existsSync(uploadsDir)) {
+      uploadsFiles = fs.readdirSync(uploadsDir);
+    }
+    
+    if (fs.existsSync(profilesDir)) {
+      profilesFiles = fs.readdirSync(profilesDir);
+    }
+    
+    console.log('📁 Directory listing:', {
+      uploadsDir: uploadsDir.replace(__dirname, '...'),
+      profilesDir: profilesDir.replace(__dirname, '...'),
+      uploadsFiles: uploadsFiles,
+      profilesFiles: profilesFiles
+    });
+    
+    res.json({
+      status: 'success',
+      data: {
+        uploadsDir: uploadsDir.replace(__dirname, '...'),
+        profilesDir: profilesDir.replace(__dirname, '...'),
+        uploadsFiles: uploadsFiles,
+        profilesFiles: profilesFiles
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ List files error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to list files',
+      error: error.message
     });
   }
 });
