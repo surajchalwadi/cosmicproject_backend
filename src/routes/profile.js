@@ -167,4 +167,64 @@ router.put("/", protect, async (req, res) => {
   }
 });
 
+// Serve profile picture
+router.get("/picture/:filename", (req, res) => {
+  try {
+    const { filename } = req.params;
+    
+    // Validate filename to prevent directory traversal
+    if (!filename || filename.includes('..') || filename.includes('/')) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid filename'
+      });
+    }
+
+    // Construct file path to profiles directory
+    const filePath = path.join(__dirname, '../../uploads/profiles', filename);
+    
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Profile picture not found'
+      });
+    }
+
+    // Get file stats
+    const stats = fs.statSync(filePath);
+    
+    // Determine content type based on file extension
+    const ext = path.extname(filename).toLowerCase();
+    const contentType = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg', 
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp'
+    }[ext] || 'application/octet-stream';
+    
+    // Set CORS headers to allow cross-origin requests
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    
+    // Set content type and length headers
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Length', stats.size);
+    res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+    
+    // Stream the file
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+    
+  } catch (error) {
+    console.error('Profile picture serve error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to serve profile picture'
+    });
+  }
+});
+
 module.exports = router; 
