@@ -180,14 +180,27 @@ router.get("/picture/:filename", (req, res) => {
       });
     }
 
-    // Construct file path to profiles directory
-    const filePath = path.join(__dirname, '../../uploads/profiles', filename);
+    // Try multiple possible file paths
+    const possiblePaths = [
+      path.join(__dirname, '../../uploads/profiles', filename),
+      path.join(__dirname, '../../uploads', filename),
+      path.join(__dirname, '../../', filename)
+    ];
+    
+    let filePath = null;
+    for (const testPath of possiblePaths) {
+      if (fs.existsSync(testPath)) {
+        filePath = testPath;
+        break;
+      }
+    }
     
     // Check if file exists
-    if (!fs.existsSync(filePath)) {
+    if (!filePath) {
       return res.status(404).json({
         status: 'error',
-        message: 'Profile picture not found'
+        message: 'Profile picture not found',
+        searchedPaths: possiblePaths.map(p => p.replace(__dirname, '...'))
       });
     }
 
@@ -206,24 +219,42 @@ router.get("/picture/:filename", (req, res) => {
     
     // Set CORS headers to allow cross-origin requests
     res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Max-Age', '86400'); // 24 hours
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
     
     // Set content type and length headers
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Length', stats.size);
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
     
     // Stream the file
     const fileStream = fs.createReadStream(filePath);
+    fileStream.on('error', (error) => {
+      console.error('File stream error:', error);
+      if (!res.headersSent) {
+        res.status(500).json({
+          status: 'error',
+          message: 'Failed to serve profile picture'
+        });
+      }
+    });
     fileStream.pipe(res);
     
   } catch (error) {
     console.error('Profile picture serve error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to serve profile picture'
-    });
+    if (!res.headersSent) {
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to serve profile picture'
+      });
+    }
   }
 });
 
